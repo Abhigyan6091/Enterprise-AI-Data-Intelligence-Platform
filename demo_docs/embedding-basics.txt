@@ -1,0 +1,75 @@
+Embeddings: A Foundation for Modern NLP
+
+What are Embeddings?
+
+Embeddings are numerical representations of text, where words, sentences, or documents are transformed into vectors of real numbers. These vectors capture semantic and syntactic properties of the text, allowing machine learning models to understand and process language in a meaningful way.
+
+History
+
+The concept of embeddings has evolved significantly:
+
+1. Word2Vec (2013): Introduced the idea that words can be represented as dense vectors. Word2Vec uses shallow neural networks to learn word representations from large text corpora. The Skip-gram and CBOW models demonstrated that similar words have similar vectors.
+
+2. GloVe (2014): Global Vectors for Word Representation combines global matrix factorization with local context window methods, learning word vectors that capture both global co-occurrence statistics and local context.
+
+3. FastText (2017): Extends Word2Vec by representing words as bags of character n-grams, allowing the model to learn meaningful representations for rare words.
+
+4. BERT (2018): Bidirectional Encoder Representations from Transformers revolutionized NLP by using transformer architectures to create contextualized word embeddings that consider both left and right context.
+
+5. GPT and Transformer Models (2018-2023): Large language models use embeddings as their foundation, with models like GPT-3, GPT-4, and others learning billion-parameter embeddings.
+
+6. Sentence Transformers (2019): Models specifically designed to generate fixed-size embeddings for entire sentences and documents, enabling efficient similarity search and semantic search applications.
+
+How Embeddings Work
+
+Embeddings are typically learned through one of these methods:
+
+1. Training on Language Tasks
+   - Next token prediction (causal language modeling)
+   - Masked token prediction (masked language modeling)
+   - Contrastive learning (learning similar pairs close together)
+
+2. Distance Metrics
+   - Cosine Similarity: Measures the angle between vectors (range -1 to 1)
+   - Euclidean Distance: Measures straight-line distance
+   - Manhattan Distance: Sum of absolute differences
+
+3. Dimensionality
+   - Word embeddings: Typically 100-300 dimensions
+   - Sentence embeddings: Typically 768-1024 dimensions
+   - Document embeddings: Same as sentence embeddings or aggregated
+
+Applications of Embeddings
+
+1. Semantic Search
+   Convert query and documents to embeddings, find nearest neighbors using cosine similarity or other distance metrics.
+
+2. Clustering
+   Group similar texts together by clustering their embeddings using K-means or hierarchical clustering.
+
+3. Classification
+   Use embeddings as features for machine learning classifiers (SVM, logistic regression, neural networks).
+
+4. Information Retrieval
+   Retrieve documents similar to a query by computing embedding distances.
+
+5. Recommendation Systems
+   Find similar items (products, articles, users) based on their embeddings.
+
+6. Anomaly Detection
+   Identify unusual texts by finding those far from the cluster center.
+
+Popular Embedding Models
+
+- BAAI/bge-large-en-v1.5: Large multilingual BGE model
+- sentence-transformers/all-MiniLM-L6-v2: Lightweight, fast embedding model
+- OpenAI text-embedding-3-large: Production-grade embeddings from OpenAI
+- Cohere Embed: Enterprise embeddings with high accuracy
+
+Best Practices
+
+1. Choose the right model for your use case (speed vs. accuracy tradeoff)
+2. Cache embeddings to avoid recomputation
+3. Monitor embedding drift over time
+4. Use appropriate similarity thresholds for your application
+5. Consider fine-tuning models on domain-specific data

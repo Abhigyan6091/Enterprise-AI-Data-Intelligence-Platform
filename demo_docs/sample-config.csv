@@ -1,0 +1,22 @@
+setting_name,setting_type,default_value,description,environment_override
+QDRANT_HOST,string,localhost,Host for Qdrant vector database,QDRANT_HOST
+QDRANT_PORT,integer,6333,Port for Qdrant vector database,QDRANT_PORT
+QDRANT_API_KEY,string,,API key for Qdrant authentication,QDRANT_API_KEY
+OLLAMA_HOST,string,http://localhost:11434,Host for local Ollama LLM,OLLAMA_HOST
+OLLAMA_MODEL,string,llama2:70b,Default LLM model name,OLLAMA_MODEL
+EMBEDDING_MODEL,string,BAAI/bge-large-en-v1.5,Model for text embeddings,EMBEDDING_MODEL
+EMBEDDING_CACHE_TTL,integer,3600,Cache TTL for embeddings in seconds,EMBEDDING_CACHE_TTL
+MAX_CHUNK_SIZE,integer,1024,Maximum tokens per chunk,MAX_CHUNK_SIZE
+MIN_CHUNK_SIZE,integer,256,Minimum tokens per chunk,MIN_CHUNK_SIZE
+RETRIEVAL_K,integer,10,Number of documents to retrieve,RETRIEVAL_K
+RERANKER_K,integer,5,Number of documents after reranking,RERANKER_K
+TEMPERATURE,float,0.7,LLM sampling temperature,TEMPERATURE
+MAX_TOKENS,integer,2048,Maximum tokens in response,MAX_TOKENS
+ENABLE_REDIS_CACHE,boolean,false,Enable Redis caching,ENABLE_REDIS_CACHE
+REDIS_HOST,string,localhost,Host for Redis cache,REDIS_HOST
+REDIS_PORT,integer,6379,Port for Redis cache,REDIS_PORT
+LOG_LEVEL,string,INFO,Logging level,LOG_LEVEL
+ENABLE_METRICS,boolean,true,Enable Prometheus metrics,ENABLE_METRICS
+METRICS_PORT,integer,8000,Port for metrics server,METRICS_PORT
+CIRCUIT_BREAKER_THRESHOLD,integer,5,Number of failures before circuit break,CIRCUIT_BREAKER_THRESHOLD
+CIRCUIT_BREAKER_TIMEOUT,integer,60,Timeout for circuit breaker reset,CIRCUIT_BREAKER_TIMEOUT
