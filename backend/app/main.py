@@ -1,15 +1,20 @@
+import json
 import time
 import logging
 import asyncio
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.config import settings
+from app.core.fault_tolerance import ollama_breaker, qdrant_breaker
+from app.core.telemetry import telemetry
 from app.domain.schemas.query import QueryProcessingRequest, QueryProcessingResponse, CitationSchema
 from app.application.graph.builder import compile_graph
+from app.infrastructure.retrieval.vector_db import vector_store
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +25,9 @@ async def lifespan(app: FastAPI):
     global graph
     logger.info("Compiling LangGraph state machine...")
     graph = await asyncio.to_thread(compile_graph)
+    # Qdrant needs this collection to exist before any retrieval/ingestion call
+    # will succeed - it was previously never called anywhere outside a test mock.
+    await vector_store.bootstrap_collections()
     logger.info(f"{settings.PROJECT_NAME} v{settings.VERSION} ready")
     yield
 
@@ -90,6 +98,13 @@ async def chat(request: QueryProcessingRequest):
             for c in result.get("citations", [])
         ]
 
+        telemetry.record(
+            latency_ms=latency,
+            success=True,
+            hallucination_score=result.get("hallucination_score"),
+            confidence_score=result.get("confidence_score"),
+        )
+
         return QueryProcessingResponse(
             final_answer=result.get("answer", "No answer generated."),
             citations=citations,
@@ -99,48 +114,90 @@ async def chat(request: QueryProcessingRequest):
         )
     except Exception as e:
         logger.error(f"Chat pipeline failed: {e}", exc_info=True)
+        telemetry.record(latency_ms=(time.time() - start) * 1000, success=False, error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
+
+
+def _breaker_status(name: str, breaker) -> dict:
+    return {
+        "name": name,
+        "state": breaker.state,
+        "failure_threshold": breaker.failure_threshold,
+        "recovery_timeout_s": breaker.recovery_timeout_sec,
+        "current_failures": breaker.failure_count,
+    }
+
+
+def _latest_benchmark_result() -> dict | None:
+    """Reads the most recent offline evaluation/run_benchmark.py output, if any."""
+    results_dir = Path(__file__).resolve().parent.parent / "evaluation" / "results"
+    if not results_dir.is_dir():
+        return None
+    files = sorted(results_dir.glob("benchmark_*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+    if not files:
+        return None
+    try:
+        payload = json.loads(files[0].read_text())
+        payload["_source_file"] = files[0].name
+        payload["_run_at"] = files[0].stat().st_mtime
+        return payload
+    except (json.JSONDecodeError, OSError) as e:
+        logger.warning(f"Could not read benchmark result {files[0]}: {e}")
+        return None
+
 
 @app.get(f"{settings.API_V1_STR}/observability")
 async def get_observability():
+    live = telemetry.snapshot()
     return {
-        "total_queries": 142,
-        "total_cost_usd": 0.005,
-        "avg_latency_ms": 1240,
-        "p95_latency_ms": 4800,
-        "error_rate": 0.014,
-        "token_usage": [
-            {"model": "llama3", "prompt_tokens": 12450, "completion_tokens": 3200, "total_tokens": 15650, "cost_usd": 0.0032},
-            {"model": "bge-reranker-large", "prompt_tokens": 8900, "completion_tokens": 0, "total_tokens": 8900, "cost_usd": 0.0018},
-        ],
+        "total_queries": live["total_queries"],
+        # Local Ollama/HuggingFace inference has no per-token billing, so real
+        # cost is genuinely 0 rather than a fabricated per-query estimate.
+        "total_cost_usd": 0.0,
+        "avg_latency_ms": live["avg_latency_ms"],
+        "p95_latency_ms": live["p95_latency_ms"],
+        "error_rate": live["error_rate"],
+        "avg_hallucination_score": live["avg_hallucination_score"],
+        "avg_confidence_score": live["avg_confidence_score"],
+        # Not instrumented yet: doing this honestly requires per-node timing
+        # inside the LangGraph nodes, which isn't wired up. Empty is more
+        # trustworthy than fabricated numbers.
+        "token_usage": [],
+        "latency_by_node": [],
+        "retry_counts": [],
         "circuit_breakers": [
-            {"name": "ollama_breaker", "state": "CLOSED", "failure_threshold": 3, "recovery_timeout_s": 45, "current_failures": 0},
-            {"name": "qdrant_breaker", "state": "CLOSED", "failure_threshold": 5, "recovery_timeout_s": 20, "current_failures": 1},
+            _breaker_status("ollama_breaker", ollama_breaker),
+            _breaker_status("qdrant_breaker", qdrant_breaker),
         ],
-        "recent_errors": [],
-        "latency_by_node": [
-            {"node": "generator", "avg_ms": 2340, "p95_ms": 3100, "count": 142},
-            {"node": "docs_agent_node", "avg_ms": 1450, "p95_ms": 2100, "count": 142},
-            {"node": "sql_agent_node", "avg_ms": 890, "p95_ms": 1500, "count": 86},
-            {"node": "self_rag", "avg_ms": 610, "p95_ms": 950, "count": 142},
-        ],
-        "retry_counts": [
-            {"node": "docs_agent_node", "attempts": 4, "success_rate": 0.75},
-            {"node": "generator", "attempts": 3, "success_rate": 1.0},
-        ],
+        "recent_errors": live["recent_errors"],
     }
 
 @app.get(f"{settings.API_V1_STR}/evaluation")
 async def get_evaluation():
+    bench = _latest_benchmark_result()
+    if not bench or not bench.get("summary"):
+        return {
+            "metrics": [],
+            "message": (
+                "No evaluation run found. Run `python -m evaluation.run_benchmark` "
+                "from backend/ to populate this."
+            ),
+        }
+
+    s = bench["summary"]
     return {
         "metrics": [
-            {"name": "Answer Relevancy", "value": 0.89, "target": 0.85, "unit": "%"},
-            {"name": "Hallucination Rate", "value": 0.03, "target": 0.05, "unit": "%"},
-            {"name": "Avg Latency", "value": 1240, "target": 2000, "unit": "ms"},
-            {"name": "Avg Cost", "value": 0.0082, "target": 0.01, "unit": "USD"},
-            {"name": "Retrieval Precision", "value": 0.92, "target": 0.90, "unit": "%"},
-            {"name": "Citation Accuracy", "value": 0.95, "target": 0.90, "unit": "%"},
-        ]
+            {"name": "Recall@5", "value": s.get("recall@5", 0.0), "target": 0.90, "unit": "%"},
+            {"name": "MRR", "value": s.get("mrr", 0.0), "target": 0.85, "unit": "ratio"},
+            {"name": "Faithfulness", "value": s.get("faithfulness_mean", 0.0), "target": 0.85, "unit": "%"},
+            {"name": "Answer Relevancy", "value": s.get("answer_relevance_mean", 0.0), "target": 0.85, "unit": "%"},
+            {"name": "Hallucination Rate", "value": s.get("hallucination_rate_gt_0.5", 0.0), "target": 0.05, "unit": "%"},
+            {"name": "Retrieval Latency", "value": s.get("retrieval_latency_ms_mean", 0.0), "target": 2000, "unit": "ms"},
+            {"name": "End-to-End Latency", "value": s.get("end_to_end_latency_ms_mean", 0.0), "target": 5000, "unit": "ms"},
+        ],
+        "source": bench.get("_source_file"),
+        "run_at": bench.get("_run_at"),
+        "n_queries": s.get("n_queries", 0),
     }
 
 @app.get(f"{settings.API_V1_STR}/sessions")

@@ -25,6 +25,13 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "nomic-embed-text")
+    # Judging (self-RAG hallucination check, faithfulness/relevancy evaluators) is a harder
+    # task than generation - it requires comparing an answer against a noisy multi-chunk
+    # context sentence by sentence. Measured directly: llama3.2:3b false-flagged a correct,
+    # fully-grounded answer as 100% hallucinated against real retrieved context, while
+    # qwen2.5:7b (also local, also free) scored the same case correctly. Defaulting the
+    # judge role to a stronger model fixes that without slowing down normal generation.
+    JUDGE_MODEL: str = os.getenv("JUDGE_MODEL", "qwen2.5:7b")
     
     @property
     def sqlalchemy_database_uri(self) -> str:

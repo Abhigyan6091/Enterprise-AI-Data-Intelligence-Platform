@@ -58,11 +58,18 @@ async def index_chunks(
                     vector=embedding,
                     payload={
                         "text": chunk.text,
-                        "source_file": chunk.source_file,
-                        "file_type": chunk.file_type,
-                        "chunk_id": chunk.chunk_id,
-                        "ingestion_timestamp": datetime.utcnow().isoformat(),
-                        "chunk_size": len(chunk.text),
+                        # Nested under "metadata" to match QdrantVectorStore's
+                        # metadata_payload_key="metadata" (see retrieval/hybrid.py) -
+                        # a flat payload here makes every retrieved Document.metadata
+                        # come back empty, which silently breaks citations and any
+                        # Recall@K/MRR measured against source_file.
+                        "metadata": {
+                            "source_file": chunk.source_file,
+                            "file_type": chunk.file_type,
+                            "chunk_id": chunk.chunk_id,
+                            "ingestion_timestamp": datetime.utcnow().isoformat(),
+                            "chunk_size": len(chunk.text),
+                        },
                     },
                 )
                 points.append(point)

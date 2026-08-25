@@ -1,0 +1,82 @@
+{
+  "summary": {
+    "n_failed": 15
+  },
+  "records": [
+    {
+      "query": "What is the peak throughput of the enterprise data pipeline?",
+      "expected_source": "data-pipeline.md",
+      "error": "Unexpected Response: 404 (Not Found)\nRaw response content:\nb''"
+    },
+    {
+      "query": "What are the three storage tiers used in the data pipeline's storage layer?",
+      "expected_source": "data-pipeline.md",
+      "error": "Unexpected Response: 404 (Not Found)\nRaw response content:\nb''"
+    },
+    {
+      "query": "What conditions trigger alerting in the data pipeline?",
+      "expected_source": "data-pipeline.md",
+      "error": "Unexpected Response: 404 (Not Found)\nRaw response content:\nb''"
+    },
+    {
+      "query": "In what year was Word2Vec introduced?",
+      "expected_source": "embedding-basics.txt",
+      "error": "Unexpected Response: 404 (Not Found)\nRaw response content:\nb''"
+    },
+    {
+      "query": "What are the three distance metrics used to compare embeddings?",
+      "expected_source": "embedding-basics.txt",
+      "error": "Unexpected Response: 404 (Not Found)\nRaw response content:\nb''"
+    },
+    {
+      "query": "What is the typical dimensionality of sentence embeddings?",
+      "expected_source": "embedding-basics.txt",
+      "error": "Unexpected Response: 404 (Not Found)\nRaw response content:\nb''"
+    },
+    {
+      "query": "What is the default value for the RETRIEVAL_K setting?",
+      "expected_source": "sample-config.csv",
+      "error": "Unexpected Response: 404 (Not Found)\nRaw response content:\nb''"
+    },
+    {
+      "query": "What is the default OLLAMA_MODEL configured in the sample config?",
+      "expected_source": "sample-config.csv",
+      "error": "Unexpected Response: 404 (Not Found)\nRaw response content:\nb''"
+    },
+    {
+      "query": "What is the default port for the Qdrant vector database in the config?",
+      "expected_source": "sample-config.csv",
+      "error": "Unexpected Response: 404 (Not Found)\nRaw response content:\nb''"
+    },
+    {
+      "query": "What columns does the daily revenue summary SQL query return?",
+      "expected_source": "sql-queries.sql",
+      "error": "Unexpected Response: 404 (Not Found)\nRaw response content:\nb''"
+    },
+    {
+      "query": "How is customer lifetime value (CLV) calculated in the SQL queries?",
+      "expected_source": "sql-queries.sql",
+      "error": "Unexpected Response: 404 (Not Found)\nRaw response content:\nb''"
+    },
+    {
+      "query": "What CTEs are used in the cohort analysis SQL query?",
+      "expected_source": "sql-queries.sql",
+      "error": "Unexpected Response: 404 (Not Found)\nRaw response content:\nb''"
+    },
+    {
+      "query": "What is the schedule interval for the enterprise_etl_pipeline Airflow DAG?",
+      "expected_source": "example-dag.py",
+      "error": "Unexpected Response: 404 (Not Found)\nRaw response content:\nb''"
+    },
+    {
+      "query": "What is the task execution order in the example Airflow DAG?",
+      "expected_source": "example-dag.py",
+      "error": "Unexpected Response: 404 (Not Found)\nRaw response content:\nb''"
+    },
+    {
+      "query": "How many retries and what retry delay are configured in the DAG's default_args?",
+      "expected_source": "example-dag.py",
+      "error": "Unexpected Response: 404 (Not Found)\nRaw response content:\nb''"
+    }
+  ]
+}

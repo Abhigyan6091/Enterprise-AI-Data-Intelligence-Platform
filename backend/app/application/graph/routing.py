@@ -13,8 +13,12 @@ def check_hallucination(state: PlatformState) -> str:
     logger.debug(f"Context length: {len(context)} chars")
     
     # Higher threshold for hallucination (0.9 instead of 0.8)
+    # Capped at 1 reflection pass, not 2: the judge itself is a 3B local model and isn't
+    # perfectly reliable (see self_rag.py) - a second regeneration round against the same
+    # judge mostly just doubles latency without reliably resolving a borderline/misjudged
+    # score, so one retry is the better cost/benefit point here.
     if hallucination_score > 0.9 and len(context) > 100:
-        if iteration_count >= 2:
+        if iteration_count >= 1:
             logger.warning("Reflection iteration limit reached. Proceeding with answer.")
             return "generate_citations"
         return "reflect"

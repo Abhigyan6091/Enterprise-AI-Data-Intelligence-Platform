@@ -1,9 +1,11 @@
+from app.core.fault_tolerance import ollama_breaker
 from app.domain.models.state import PlatformState
 from app.infrastructure.llm.ollama import get_chat_model
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-def reflection_node(state: PlatformState) -> dict:
+@ollama_breaker
+async def reflection_node(state: PlatformState) -> dict:
     """
     Triggered solely when Self-RAG detects a hallucination threshold breach.
     Generates a localized critique and updates the iteration loops count to prevent graph exhaustion.
@@ -21,7 +23,7 @@ def reflection_node(state: PlatformState) -> dict:
     """)
     
     chain = prompt | llm | StrOutputParser()
-    critique = chain.invoke({"context": context, "flawed_answer": flawed_answer})
+    critique = await chain.ainvoke({"context": context, "flawed_answer": flawed_answer})
     
     return {
         "reflection_feedback": critique,

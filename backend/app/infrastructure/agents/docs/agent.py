@@ -1,3 +1,4 @@
+from app.core.fault_tolerance import qdrant_breaker
 from app.domain.schemas.agent import AgentExecutionResult
 from app.domain.models.state import PlatformState
 from app.infrastructure.retrieval.hybrid import get_hybrid_retriever
@@ -20,8 +21,14 @@ class DocumentationAgent:
         if self._compressor is None:
             # Hybrid retriever handles both provided documents and Qdrant collection queries
             self._hybrid_retriever = await get_hybrid_retriever(self.raw_documents, "enterprise_knowledge")
-            self._compressor = get_context_compressor(self._hybrid_retriever)
+            # 5 was too tight for multi-part questions about a single long file (e.g. a DAG's
+            # task order plus its retry config both needed showing up together) - the file-level
+            # source was always recalled, but the specific chunk holding one sub-answer sometimes
+            # fell just outside the top-5 reranked window. 7 gives more headroom at a modest
+            # generation-context cost.
+            self._compressor = get_context_compressor(self._hybrid_retriever, final_k_limit=7)
 
+    @qdrant_breaker
     async def execute(self, state: PlatformState) -> AgentExecutionResult:
         """
         Converted directly to asyncio mappings utilizing native Langchain .ainvoke().
